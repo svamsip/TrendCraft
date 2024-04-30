@@ -4,5 +4,5 @@ google-cloud
 google-cloud-aiplatform==1.45.0
 google-auth==2.24.0
 scikit-learn
-streamlit==1.25.0
+streamlit==1.33.0
 catboost==1.2.2

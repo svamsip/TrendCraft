@@ -5,149 +5,72 @@ import sys
 
 import pandas as pd
 import streamlit as st
-from catboost import CatBoostRegressor
-from google.cloud import aiplatform
-from google.oauth2 import service_account
 
 sys.path.append(os.path.join(os.path.dirname(__file__), os.pardir))
 
-from src.helper import (
-    apply_pca,
-    preprocess,
-    suggest_hashtags,
-    suggest_title_description,
-    vectorize,
-)
-
-with open(os.environ["GOOGLE_APPLICATION_CREDENTIALS"], "r") as f:
-    json_creds = json.load(f)
-
-project_id = json_creds["project_id"]
-credentials = service_account.Credentials.from_service_account_info(json_creds)
-aiplatform.init(project=project_id, credentials=credentials)
-
 
 def main():
-    st.title("TrendCraft")
-    st.subheader(f"The Ultimate Companion for Content Creators! 🚀")
-    # Input fields
-    title = st.text_input("Title")
-    description = st.text_area("Description")
-    published_at = st.date_input("Published Date")
-    trending_date = st.date_input("Trending Date")
-    channel_title = st.text_input("Channel Title")
-    hashtags = st.text_input("Hashtags")
+    st.title("Welcome to TrendCraft")
+    st.header("The Ultimate Companion for Content Creators! 🚀")
 
-    # Category dropdown
-    category_options = [
-        "Film & Animation",
-        "Autos & Vehicles",
-        "Music",
-        "Pets & Animals",
-        "Sports",
-        "Short Movies",
-        "Travel & Events",
-        "Gaming",
-        "Videoblogging",
-        "People & Blogs",
-        "Comedy",
-        "Entertainment",
-        "News & Politics",
-        "Howto & Style",
-        "Education",
-        "Science & Technology",
-        "Nonprofits & Activism",
-        "Movies",
-        "Anime/Animation",
-        "Action/Adventure",
-        "Classics",
-        "Comedy",
-        "Documentary",
-        "Drama",
-        "Family",
-        "Foreign",
-        "Horror",
-        "Sci-Fi/Fantasy",
-        "Thriller",
-        "Shorts",
-        "Shows",
-        "Trailers",
-    ]
-    category = st.selectbox("Category", category_options)
-    category_dict = {
-        category: index + 1 for index, category in enumerate(category_options)
-    }
-    categoryId = category_dict[category]
+    st.image("images/graphic.jpeg", width=500)
 
-    # Duration input fields
-    st.subheader("Duration")
-    hours = st.number_input("Hours", min_value=0)
-    minutes = st.number_input("Minutes", min_value=0, max_value=59)
-    seconds = st.number_input("Seconds", min_value=0, max_value=59)
+    st.write(
+        """
+    TrendCraft is a tool designed to help content creators optimize their videos for maximum engagement and virality on platforms like YouTube.
+    
+    Simply input information about your video, such as its title, description, category, duration, and hashtags, and TrendCraft will provide you with valuable insights and suggestions to enhance your video's performance.
+    
+    """
+    )
 
-    # Button to analyze video
-    if st.button("Analyse Video"):
-        # Store data in DataFrame
-        data = {
-            "videoId": [0],
-            "publishedAt": [published_at],
-            "channelId": [0],
-            "title": [title],
-            "description": [description],
-            "channelTitle": [channel_title],
-            "categoryId": [categoryId],
-            "tags": [hashtags],
-            "duration": [f"{hours}:{minutes}:{seconds}"],
-            "viewCount": [0],
-            "likeCount": [0],
-            "target": [0],
-            "trending_date": [trending_date],
-        }
-        data = pd.DataFrame(data)
-        data = preprocess(data)
+    st.page_link(
+        "pages/tool.py",
+        label="Try the tool!!!",
+        use_container_width=True,
+        icon="\U0001F3A5",
+    )
 
-        test_text = data.text.tolist()
-        data.drop(
-            [
-                "text",
-            ],
-            axis=1,
-            inplace=True,
-        )
+    st.header("How it Works", divider=True)
+    st.write("Imagine you are Marques Brownlee.")
+    st.write(
+        "You just shot a video about Vision Pro. Now its time to publish it and cash in"
+    )
 
-        test_vectors = vectorize(test_text)
-        test_vectors = apply_pca(test_vectors)
-        data = pd.concat([data, test_vectors], axis=1)
-        data.dropna(inplace=True)
+    st.subheader("Step 1. Enter the title and description of your potential video")
+    st.image("images/title_description.jpeg", use_column_width=True)
+    st.subheader(
+        "Step 2. Enter the date you will publish the video and the date for which you want to measure the engagement of your video"
+    )
+    st.image("images/date.jpeg", use_column_width=True)
+    st.subheader(
+        "Step 3. Enter channel title, potential hashtags and select category from the available options"
+    )
+    st.image("images/title_tags_category.jpeg", use_column_width=True)
+    st.subheader("Step 4. Enter the duration of your video")
+    st.image("images/duration.jpeg", use_column_width=True)
+    st.subheader("Step 5. Click on Analyse Video")
+    st.image("images/result.jpeg", use_column_width=True)
+    st.image("images/suggested_title_desc.jpeg", use_column_width=True)
+    st.image("images/suggested_tags.jpeg", use_column_width=True)
+    st.markdown("<hr>", unsafe_allow_html=True)
 
-        with open("build/models/cat_cols.pkl", "rb") as f:
-            categorical_cols = pickle.load(f)
+    st.header("Sounds too magical? Here's how it works under the hood")
+    st.write(
+        """
+             We use a machine learning model that analyses the title, description and other metadata about your potential video and predicts the 
+             like to view ratio on a given date after the publishing date.
+             The model is trained regularly on a massive dataset of trending youtube videos and hence captures the dynamics of youtube's recommendation algorithm
+             """
+    )
 
-        y_train = data["target"]
-        x_train = data.drop(["target"], axis=1)
-
-        model = CatBoostRegressor(cat_features=categorical_cols)
-        model.load_model("build/models/catboost_model")
-        y_pred = model.predict(x_train)
-
-        target = round(y_pred[0], 2)
-
-        st.subheader(
-            f"Hurray!! Your video is likely to get: {target * 100} likes per 100 views."
-        )
-        st.subheader(f"Try the below suggestions to make your video Viral!! 🔥")
-
-        st.markdown("<hr>", unsafe_allow_html=True)
-        new_title, new_description = suggest_title_description(title, description)
-        st.subheader(f"Suggested title:")
-        st.write(new_title)
-        st.markdown("<hr>", unsafe_allow_html=True)
-        st.subheader(f"Suggested description:")
-        st.write(new_description)
-        st.markdown("<hr>", unsafe_allow_html=True)
-        hashtags = suggest_hashtags(title, description)
-        st.subheader(f"Suggested hashtags:")
-        st.write(hashtags)
+    st.header("How do we suggest the title, description and hashtags?")
+    st.write(
+        """
+             We find trending videos from our dataset that have high like-to-view ratio and are similar to your video in terms of description, title, category and duration. 
+             And based on these videos, we use GenAI models to rephrase your video configurations.
+             """
+    )
 
 
 if __name__ == "__main__":
