@@ -9,7 +9,8 @@ TrendCraft is a cutting-edge tool designed to empower content creators in the th
 
 ## Access
 
-To experience the power of TrendCraft, simply follow [this link](#) to access the product.
+To experience the power of TrendCraft, simply follow [this link](https://trendcraft-3mbn3mfnfq-uc.a.run.app) to access the product.
+
 
 ## Collaborators
 
